@@ -75,10 +75,16 @@ def load_key_if_needed
 end
 
 def load_current_resource
-  search = Mixlib::ShellOut.new(
-    "ssh-keygen -H -F #{Shellwords.escape(new_resource.host)} "\
+  cmd = ''
+  if new_resource.key.nil?
+    cmd = "ssh-keygen #{new_resource.hashed ? '-H ' : ''} -F #{Shellwords.escape(new_resource.host)} "\
     "-f #{new_resource.path} | grep 'Host #{new_resource.host} found'"
-  )
+  else
+    cmd = "cat '#{new_resource.path}' | grep '#{new_resource.key}'"
+  end
+
+  search = Mixlib::ShellOut.new(cmd)
+
   search.run_command
   @current_resource = Chef::Resource::SshKnownHosts.new(@new_resource.name)
   @current_resource.exists = search.status.success?
